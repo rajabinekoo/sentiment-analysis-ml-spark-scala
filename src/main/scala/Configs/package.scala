@@ -1,0 +1,24 @@
+package object Configs {
+  val AppName = "SentimentAnalysisYelpImprovedLogisticRegression"
+  val Master = "local[*]"
+  val DataSource = "src/main/resources/yelp.json"
+  val ExampleLimit = 20000
+  val FeatureSize = 20000
+  val TrainingSplitRatio = 0.8
+  val TestSplitRatio = 0.2
+  val RandomSeed = 12345
+  val PositiveThreshold = 4
+  val NegativeThreshold = 2
+  val NeutralThreshold = 3
+  val PositiveLabel = 1.0
+  val NegativeLabel = 0.0
+  val NeutralLabel = 2.0
+  val PredictionSampleCount = 5
+  val CoolColumn = "cool"
+  val FunnyColumn = "funny"
+  val UsefulColumn = "useful"
+  val NeutralWordsCount = "neutral_word_counts"
+  val PositiveWordsCount = "positive_word_counts"
+  val NegativeWordsCount = "negative_word_counts"
+  val VaderLexiconPath = "src/main/resources/vader_lexicon.txt"
+}
