@@ -14,5 +14,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % sparkVersion,
   "org.apache.spark" %% "spark-mllib" % sparkVersion,
   "com.datastax.spark" %% "spark-cassandra-connector" % "3.5.1",
-  "com.johnsnowlabs.nlp" %% "spark-nlp" % "5.4.1"
+  "com.johnsnowlabs.nlp" %% "spark-nlp" % "5.4.1",
+  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.773" exclude("com.fasterxml.jackson.core", "jackson-databind"),
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.15.2"
 )

@@ -1,5 +1,8 @@
 package Libs
 
+import java.io.File
+import java.nio.file.Paths
+
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.ml.util.DefaultParamsWritable
 import org.apache.spark.ml.{Pipeline, PipelineModel, PipelineStage}
@@ -55,14 +58,8 @@ object MachineLearningModel {
     predictions.show()
   }
 
-  def trainModel(
-    data: DataFrame,
-    modelName: String = ModelEnum.LogisticRegression,
-    postTrainTestData: Seq[(String, String, Int, Int, Int)] = Seq(),
-  ): Unit = {
-    val preprocessingStages = definePreprocessingStages(Configs.FeatureSize)
-
-    val classifier = modelName match {
+  private def getModelByName(modelName: String): org.apache.spark.ml.classification.Classifier[_, _, _] = {
+    modelName match {
       case ModelEnum.LogisticRegression => new LogisticRegression()
         .setLabelCol("label")
         .setFamily("multinomial")
@@ -80,6 +77,24 @@ object MachineLearningModel {
         .setSeed(Configs.RandomSeed)
       case _ => throw new Error("Invalid training model")
     }
+  }
+
+  private def getModelByNameWithinLoad(modelName: String, path: String): org.apache.spark.ml.classification.Classifier[_, _, _] = {
+    modelName match {
+      case ModelEnum.LogisticRegression => LogisticRegression.load(path)
+      case ModelEnum.NaiveBayes => NaiveBayes.load(path)
+      case ModelEnum.RandomForest => RandomForestClassifier.load(path)
+      case _ => throw new Error("Invalid training model")
+    }
+  }
+
+  def trainModel(
+    data: DataFrame,
+    modelName: String = ModelEnum.LogisticRegression,
+    postTrainTestData: Seq[(String, String, Int, Int, Int)] = Seq(),
+  ): Unit = {
+    val preprocessingStages = definePreprocessingStages(Configs.FeatureSize)
+    val classifier = getModelByName(modelName)
 
     val assembler = new VectorAssembler()
       .setInputCols(Array(
@@ -101,10 +116,16 @@ object MachineLearningModel {
     )
 
     val model = pipeline.fit(trainingData)
-
     val predictions = model.transform(testData)
 
-    evaluateModel(predictions)
+    val accuracy = evaluateModel(predictions)
+    if (accuracy > 0.9 && Configs.S3SaveModel) {
+      if (new File(Configs.S3LocalModelPath).isDirectory) {
+        DiskStorage.deleteDirectoryRecursively(Paths.get(Configs.S3LocalModelPath))
+      }
+      model.save(Configs.SaveModelPath)
+      S3Storage.uploadDirectory(Configs.S3LocalModelPath, Configs.S3ModelBucket, Configs.S3RemoteModelPath)
+    }
 
     predictions.select(
       "body", "stars", "label", "prediction", "probability",
@@ -112,5 +133,15 @@ object MachineLearningModel {
     ).limit(Configs.PredictionSampleCount).show()
 
     if (postTrainTestData.nonEmpty) testWithNewData(model, postTrainTestData)
+  }
+
+  def inference(postTrainTestData: Seq[(String, String, Int, Int, Int)]): Unit = {
+    if (!Configs.S3LoadModel) return
+    val localDir = new File(Configs.S3LocalModelPath)
+    if (!localDir.isDirectory) {
+      S3Storage.downloadDirectory(Configs.S3ModelBucket, Configs.S3RemoteModelPath, Configs.S3LocalModelPath)
+    }
+    val model = PipelineModel.load(Configs.S3LocalModelPath)
+    testWithNewData(model, postTrainTestData)
   }
 }

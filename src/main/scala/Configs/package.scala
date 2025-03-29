@@ -40,5 +40,10 @@ package object Configs {
   val S3AccessKey = "hg536gS5bVdByztLJjJv"
   val S3SecretKey = "6FwhSehsU4YDHUInsSOGe8wFGtH2mUJcmpNWisrt"
   val S3URL = "http://127.0.0.1:9000"
-  val ModelPath = "s3a://machine-learning-models/spark-model/"
+  val S3ModelBucket = "machine-learning-models"
+  val S3SaveModel = false
+  val S3LoadModel = true
+  val SaveModelPath = "file:///tmp/my_trained_model"
+  val S3LocalModelPath = "/tmp/my_trained_model"
+  val S3RemoteModelPath = "/my_trained_model"
 }
