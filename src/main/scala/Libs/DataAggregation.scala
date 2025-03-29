@@ -1,25 +1,18 @@
 package Libs
 
+import org.apache.spark.sql.functions._
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.sql.functions.{col, lit, when}
 
 object DataAggregation {
-  def loadAndPrepareData(spark: SparkSession, dataSource: String, limit: Int = Int.MaxValue): DataFrame = {
+  def loadAndPrepareData(spark: SparkSession): DataFrame = {
     spark.read
-      .format("json")
-      .option("header", "true")
-      .option("inferSchema", "true")
-      .load(dataSource)
-      .limit(limit)
-      .filter(col("stars").isNotNull)
-      .withColumn("label",
-        when(col("stars") >= Configs.PositiveThreshold, Configs.PositiveLabel)
-          .when(col("stars") <= Configs.NegativeThreshold, Configs.NegativeLabel)
-          .when(col("stars") === Configs.NeutralThreshold, Configs.NeutralLabel) // اضافه کردن برچسب خنثی
-          .otherwise(lit(null))
-      )
-      .filter(col("label").isNotNull)
-      .withColumn("label", col("label").cast("double")).limit(2000)
+      .format("org.apache.spark.sql.cassandra")
+      .option("keyspace", Configs.CassandraKeyspace)
+      .option("table", Configs.BucketedReviewsTable)
+      .load()
+      .limit(Configs.ExampleLimit)
+      .persist(Configs.DataframePersistLevel)
   }
 
   def balanceData(data: DataFrame): DataFrame = {

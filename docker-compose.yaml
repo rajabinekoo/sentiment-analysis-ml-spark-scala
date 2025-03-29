@@ -1,0 +1,28 @@
+services:
+  cassandra:
+    image: cassandra:5.0.3
+    container_name: cassandra
+    env_file:
+      - .env
+    ports:
+      - "9042:9042"
+      - "7199:7199"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+#      - ./cassandra.yaml:/etc/cassandra/cassandra.yaml
+
+  minio:
+    container_name: minio
+    image: quay.io/minio/minio
+    ports:
+      - "9000:9000"
+      - "9090:9090"
+    env_file:
+      - .env
+    volumes:
+      - minio_data:/data
+    command: server --address ":9000" --console-address ":9090" /data
+
+volumes:
+  minio_data: {}
+  cassandra_data: {}

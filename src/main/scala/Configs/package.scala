@@ -1,3 +1,5 @@
+import org.apache.spark.storage.StorageLevel
+
 package object Configs {
   val AppName = "SentimentAnalysisYelpImprovedLogisticRegression"
   val Master = "local[*]"
@@ -21,4 +23,20 @@ package object Configs {
   val PositiveWordsCount = "positive_word_counts"
   val NegativeWordsCount = "negative_word_counts"
   val VaderLexiconPath = "src/main/resources/vader_lexicon.txt"
+  val BucketedReviewsTable = "reviews_bucketed"
+  val CassandraHost = "localhost"
+  val CassandraPort = "9042"
+  val CassandraKeyspace = "yelp_data_mining"
+  val SyncCassandraWithDataset = false
+  val PartitioningCassandraSize = "64" // 64mb
+  val LearningRateForGradientDescending = 0.0001
+  val ShufflePartitions = "200"
+  val SparkDriverMemory = "1g"
+  val SparkExecutorMemory = "1g"
+  val DataframePersistLevel: StorageLevel = StorageLevel.DISK_ONLY
+  val LogisticRegressionIteration = 100
+  val S3AccessKey = "hg536gS5bVdByztLJjJv"
+  val S3SecretKey = "6FwhSehsU4YDHUInsSOGe8wFGtH2mUJcmpNWisrt"
+  val S3URL = "http://127.0.0.1:9000"
+  val ModelPath = "s3a://machine-learning-models/spark-model/"
 }

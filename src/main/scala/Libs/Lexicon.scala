@@ -2,42 +2,39 @@ package Libs
 
 import scala.collection.mutable
 
-import org.apache.spark.sql.functions.first
-import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.functions.{col, first}
 import org.apache.spark.sql.types.{DoubleType, IntegerType, LongType, StructField, StructType}
 
-object Lexicon {
-  private val statusOfSentimentWords: mutable.Map[String, Double] = mutable.Map()
-
-  def init(spark: SparkSession): mutable.Map[String, Double] = {
-    val wordsMap: mutable.Map[String, Double] = mutable.Map()
-    spark.read.textFile(Configs.VaderLexiconPath)
-      .foreach(line => {
-        val strRow = line.toString
-        val parts = strRow.split("\t")
-        if (parts.length >= 2) {
-          val word = parts(0).trim
-          val polarityStr = parts(1).trim
-          try {
-            val polarity = polarityStr.toDouble
-            wordsMap.put(word, if (polarity > 0) 1.0 else if (polarity < 0) 0.0 else 2.0)
-            print("")
-          } catch {
-            case _: NumberFormatException => print("")
-          }
-        }
-      })
-    wordsMap
+trait Lexicon {
+  val vader: mutable.Map[String, Double] = {
+    val words: mutable.Map[String, Double] = mutable.Map()
+    val lexiconRows = SparkInstance.singleton.read
+      .option("delimiter", "\t")
+      .csv(Configs.VaderLexiconPath)
+      .toDF("word", "polarity", "std_dev", "scores_raw")
+      .filter(col("word").isNotNull).collectAsList()
+    lexiconRows.forEach(row => {
+      try {
+        val polarity = row.getString(1).toDouble
+        val value = if (polarity > 0.1) 1.0 else if (polarity < -0.1) 0.0 else 2.0
+        words.put(row.getString(0).trim().toLowerCase(), value)
+      }
+    })
+    words
   }
+}
 
-  def extractSentimentWordsCountFeature(spark: SparkSession, df: DataFrame): DataFrame = {
-    val wordSentimentRDD = df.select("review_id", "text").rdd.flatMap { row =>
-      val reviewId = row.getLong(0)
-      val text = row.getString(1).toLowerCase().replaceAll("[^a-zA-Z\\s]", "").split("\\s+")
-      text.filter(_.nonEmpty)
-        .map(word => (reviewId, statusOfSentimentWords.getOrElse(word, -1.0)))
-        .filter(_._2 != -1.0)
-    }
+object Lexicon extends Lexicon {
+  def extractSentimentWordsCountFeature(df: DataFrame): DataFrame = {
+    val wordSentimentRDD = df
+      .select("id", "body").rdd.flatMap { row =>
+        val reviewId = row.getLong(0)
+        val text = row.getString(1).toLowerCase().replaceAll("[^a-zA-Z\\s]", "").split("\\s+")
+        text.filter(_.nonEmpty)
+          .map(word => (reviewId, vader.getOrElse(word, -0.1)))
+          .filter(_._2 != -1.0)
+      }
 
     val sentimentCountsRDD = wordSentimentRDD
       .map { case (reviewId, sentiment) => ((reviewId, sentiment), 1) }
@@ -45,13 +42,13 @@ object Lexicon {
       .map { case ((reviewId, sentiment), count) => Row(reviewId, sentiment, count) }
 
     val schema = StructType(Seq(
-      StructField("review_id", LongType, nullable = false),
+      StructField("id", LongType, nullable = false),
       StructField("sentiment_value", DoubleType, nullable = false),
       StructField("count", IntegerType, nullable = false)
     ))
 
-    val sentimentCountsDF = spark.createDataFrame(sentimentCountsRDD, schema)
-      .groupBy("review_id")
+    val sentimentCountsDF = SparkInstance.singleton.createDataFrame(sentimentCountsRDD, schema)
+      .groupBy("id")
       .pivot("sentiment_value", Seq(1.0, 0.0, 2.0))
       .agg(first("count"))
       .withColumnRenamed("1.0", Configs.PositiveWordsCount)
@@ -59,6 +56,6 @@ object Lexicon {
       .withColumnRenamed("2.0", Configs.NeutralWordsCount)
       .na.fill(0)
 
-    df.join(sentimentCountsDF, Seq("review_id"), "left").na.fill(0).drop("review_id")
+    df.join(sentimentCountsDF, Seq("id"), "left").na.fill(0).drop("id")
   }
 }

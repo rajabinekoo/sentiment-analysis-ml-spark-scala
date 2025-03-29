@@ -1,6 +1,6 @@
 package Libs
 
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.ml.util.DefaultParamsWritable
 import org.apache.spark.ml.{PipelineModel, PipelineStage}
 import org.apache.spark.ml.param.shared.{HasInputCol, HasOutputCol}
@@ -10,7 +10,7 @@ import org.apache.spark.ml.feature.{CountVectorizer, IDF, NGram, StopWordsRemove
 
 object MachineLearningModel {
   def definePreprocessingStages(featureSize: Int): Array[PipelineStage with HasInputCol with HasOutputCol with DefaultParamsWritable] = {
-    val tokenizer = new Tokenizer().setInputCol("text").setOutputCol("words")
+    val tokenizer = new Tokenizer().setInputCol("body").setOutputCol("words")
     val remover = new StopWordsRemover().setInputCol("words").setOutputCol("filtered_words")
     val ngram = new NGram().setInputCol("filtered_words").setOutputCol("ngrams").setN(2)
     val countVectorizer = new CountVectorizer()
@@ -23,19 +23,18 @@ object MachineLearningModel {
     Array(tokenizer, remover, ngram, countVectorizer, idf)
   }
 
-  def evaluateModel(predictions: DataFrame): Unit = {
+  def evaluateModel(predictions: DataFrame): Double = {
     val evaluator = new MulticlassClassificationEvaluator()
       .setLabelCol("label")
       .setPredictionCol("prediction")
       .setMetricName("accuracy")
 
-    val accuracy = evaluator.evaluate(predictions)
-    println(s"Accuracy on test data = $accuracy")
+    evaluator.evaluate(predictions)
   }
 
-  def testWithNewData(spark: SparkSession, model: PipelineModel, data: Seq[(String, String, Int, Int, Int)]): Unit = {
-    var testData = spark.createDataFrame(data)
-      .toDF("text", "label_str", Configs.CoolColumn, Configs.FunnyColumn, Configs.UsefulColumn)
+  def testWithNewData(model: PipelineModel, data: Seq[(String, String, Int, Int, Int)]): Unit = {
+    var testData = SparkInstance.singleton.createDataFrame(data)
+      .toDF("body", "label_str", Configs.CoolColumn, Configs.FunnyColumn, Configs.UsefulColumn)
       .withColumn("label",
         when(col("label_str") === "positive", Configs.PositiveLabel)
           .when(col("label_str") === "negative", Configs.NegativeLabel)
@@ -44,9 +43,9 @@ object MachineLearningModel {
       )
       .filter(col("label").isNotNull)
       .withColumn("label", col("label").cast("double"))
-      .withColumn("review_id", monotonically_increasing_id())
+      .withColumn("id", monotonically_increasing_id())
 
-    testData = Lexicon.extractSentimentWordsCountFeature(spark, testData)
+    testData = Lexicon.extractSentimentWordsCountFeature(testData)
 
     val predictions = model.transform(testData)
     println("\nPredictions on new data:")

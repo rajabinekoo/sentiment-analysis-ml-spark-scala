@@ -1,28 +1,21 @@
-import Libs.{DataAggregation, Lexicon, MachineLearningModel}
+import Database.{InitCassandra, InitReviews}
+import Libs.{DataAggregation, MachineLearningModel}
 
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.{Pipeline, PipelineStage}
 import org.apache.spark.ml.util.DefaultParamsWritable
-import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.ml.param.shared.{HasInputCol, HasOutputCol}
-import org.apache.spark.sql.functions.{col, monotonically_increasing_id}
 import org.apache.spark.ml.classification.{LogisticRegression, NaiveBayes, RandomForestClassifier}
 
 object Main {
-  private val spark = SparkSession.builder().appName(Configs.AppName).master(Configs.Master).getOrCreate()
-  Lexicon.init(spark)
+  InitCassandra.init()
+  if (Configs.SyncCassandraWithDataset) InitReviews.init()
 
   def main(args: Array[String]): Unit = {
-    var labeledData = DataAggregation.loadAndPrepareData(spark, Configs.DataSource, Configs.ExampleLimit)
-      .filter(col(Configs.CoolColumn).isNotNull)
-      .filter(col(Configs.FunnyColumn).isNotNull)
-      .filter(col(Configs.UsefulColumn).isNotNull)
-      .withColumn("review_id", monotonically_increasing_id())
-      .withColumn(Configs.CoolColumn, col(Configs.CoolColumn).cast("long"))
-      .withColumn(Configs.FunnyColumn, col(Configs.FunnyColumn).cast("long"))
-      .withColumn(Configs.UsefulColumn, col(Configs.UsefulColumn).cast("long"))
+    val labeledData = DataAggregation.loadAndPrepareData(SparkInstance.singleton)
 
-    labeledData = Lexicon.extractSentimentWordsCountFeature(spark, labeledData)
+    labeledData.show()
 
     println("Class distribution:")
     labeledData.groupBy("label").count().show()
@@ -47,7 +40,8 @@ object Main {
 
     trainLogisticRegression(preprocessingStages, assembler, balancedData)
 
-    spark.stop()
+    labeledData.unpersist()
+    SparkInstance.singleton.stop()
   }
 
   private def trainLogisticRegression(
@@ -57,13 +51,17 @@ object Main {
   ): Unit = {
     val classifier = new LogisticRegression()
       .setLabelCol("label")
-      .setFeaturesCol("all_features")
-      .setMaxIter(100)
       .setFamily("multinomial")
+      .setFeaturesCol("all_features")
+      .setMaxIter(Configs.LogisticRegressionIteration)
+      .setRegParam(Configs.LearningRateForGradientDescending)
 
     val pipeline = new Pipeline().setStages(preprocessingStages ++ Array(assembler, classifier))
 
-    val Array(trainingData, testData) = balancedData.randomSplit(Array(Configs.TrainingSplitRatio, Configs.TestSplitRatio), seed = Configs.RandomSeed)
+    val Array(trainingData, testData) = balancedData.randomSplit(
+      Array(Configs.TrainingSplitRatio, Configs.TestSplitRatio),
+      Configs.RandomSeed,
+    )
 
     val model = pipeline.fit(trainingData)
 
@@ -72,7 +70,7 @@ object Main {
     MachineLearningModel.evaluateModel(predictions)
 
     predictions.select(
-      "text", "stars", "label", "prediction", "probability",
+      "body", "stars", "label", "prediction", "probability",
       Configs.CoolColumn, Configs.FunnyColumn, Configs.UsefulColumn,
     ).limit(Configs.PredictionSampleCount).show()
 
@@ -84,7 +82,7 @@ object Main {
       ("I hate waiting in long lines", "negative", 0, 0, 0),
       ("Chert o pert", "neutral", 0, 0, 0)
     )
-    MachineLearningModel.testWithNewData(spark, model, postTrainTestData)
+    MachineLearningModel.testWithNewData(model, postTrainTestData)
   }
 
   private def trainRandomForest(
@@ -110,7 +108,7 @@ object Main {
     MachineLearningModel.evaluateModel(predictions)
 
     predictions.select(
-      "text", "stars", "label", "prediction", "probability",
+      "body", "stars", "label", "prediction", "probability",
       Configs.CoolColumn, Configs.FunnyColumn, Configs.UsefulColumn,
     ).limit(Configs.PredictionSampleCount).show()
 
@@ -122,7 +120,7 @@ object Main {
       ("I hate waiting in long lines", "negative", 0, 0, 0),
       ("Chert o pert", "neutral", 0, 10, 0)
     )
-    MachineLearningModel.testWithNewData(spark, model, postTrainTestData)
+    MachineLearningModel.testWithNewData(model, postTrainTestData)
   }
 
   private def trainNaiveBayes(
@@ -145,7 +143,7 @@ object Main {
     MachineLearningModel.evaluateModel(predictions)
 
     predictions.select(
-      "text", "stars", "label", "prediction", "probability",
+      "body", "stars", "label", "prediction", "probability",
       Configs.CoolColumn, Configs.FunnyColumn, Configs.UsefulColumn,
     ).limit(Configs.PredictionSampleCount).show()
 
@@ -157,6 +155,6 @@ object Main {
       ("I hate waiting in long lines", "negative", 0, 0, 0),
       ("Chert o pert", "neutral", 0, 10, 0)
     )
-    MachineLearningModel.testWithNewData(spark, model, postTrainTestData)
+    MachineLearningModel.testWithNewData(model, postTrainTestData)
   }
 }
