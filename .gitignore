@@ -22,6 +22,7 @@ project/plugins/project/
 .project
 .classpath
 .cache
+.bsp
 
 # Scala-IDE specific
 .scala_dependencies

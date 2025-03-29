@@ -8,6 +8,8 @@ package object Configs {
   val FeatureSize = 20000
   val TrainingSplitRatio = 0.8
   val TestSplitRatio = 0.2
+  val RandomTreeNum = 300
+  val RandomMaxDepth = 10
   val RandomSeed = 12345
   val PositiveThreshold = 4
   val NegativeThreshold = 2
