@@ -38,9 +38,9 @@ object MachineLearningModel {
     accuracy
   }
 
-  private def testWithNewData(model: PipelineModel, data: Seq[(String, String, Int, Int, Int)]): Unit = {
+  private def testWithNewData(model: PipelineModel, data: Seq[(String, String)]): Unit = {
     var testData = SparkInstance.singleton.createDataFrame(data)
-      .toDF("body", "label_str", Configs.CoolColumn, Configs.FunnyColumn, Configs.UsefulColumn)
+      .toDF("body", "label_str")
       .withColumn("label",
         when(col("label_str") === "positive", Configs.PositiveLabel)
           .when(col("label_str") === "negative", Configs.NegativeLabel)
@@ -79,19 +79,10 @@ object MachineLearningModel {
     }
   }
 
-  private def getModelByNameWithinLoad(modelName: String, path: String): org.apache.spark.ml.classification.Classifier[_, _, _] = {
-    modelName match {
-      case ModelEnum.LogisticRegression => LogisticRegression.load(path)
-      case ModelEnum.NaiveBayes => NaiveBayes.load(path)
-      case ModelEnum.RandomForest => RandomForestClassifier.load(path)
-      case _ => throw new Error("Invalid training model")
-    }
-  }
-
   def trainModel(
     data: DataFrame,
     modelName: String = ModelEnum.LogisticRegression,
-    postTrainTestData: Seq[(String, String, Int, Int, Int)] = Seq(),
+    postTrainTestData: Seq[(String, String)] = Seq(),
   ): Unit = {
     val preprocessingStages = definePreprocessingStages(Configs.FeatureSize)
     val classifier = getModelByName(modelName)
@@ -99,9 +90,6 @@ object MachineLearningModel {
     val assembler = new VectorAssembler()
       .setInputCols(Array(
         "features",
-        Configs.CoolColumn,
-        Configs.FunnyColumn,
-        Configs.UsefulColumn,
         Configs.NeutralWordsCount,
         Configs.PositiveWordsCount,
         Configs.NegativeWordsCount
@@ -129,13 +117,12 @@ object MachineLearningModel {
 
     predictions.select(
       "body", "stars", "label", "prediction", "probability",
-      Configs.CoolColumn, Configs.FunnyColumn, Configs.UsefulColumn,
     ).limit(Configs.PredictionSampleCount).show()
 
     if (postTrainTestData.nonEmpty) testWithNewData(model, postTrainTestData)
   }
 
-  def inference(postTrainTestData: Seq[(String, String, Int, Int, Int)]): Unit = {
+  def inference(postTrainTestData: Seq[(String, String)]): Unit = {
     if (!Configs.S3LoadModel) return
     val localDir = new File(Configs.S3LocalModelPath)
     if (!localDir.isDirectory) {

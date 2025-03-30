@@ -6,15 +6,16 @@ object Main {
   if (Configs.SyncCassandraWithDataset) InitReviews.init()
 
   private val postTrainTestData = Seq(
-    ("I love this product!", "positive", 0, 0, 0),
-    ("This is the worst experience ever", "negative", 0, 0, 0),
-    ("I feel neutral about this", "neutral", 0, 0, 0),
-    ("The service was fantastic", "positive", 0, 0, 0),
-    ("I hate waiting in long lines", "negative", 0, 0, 0),
-    ("Chert o pert", "neutral", 0, 0, 0)
+    ("I love this product!", "positive"),
+    ("This is the worst experience ever", "negative"),
+    ("I feel neutral about this", "neutral"),
+    ("The service was fantastic", "positive"),
+    ("I hate waiting in long lines", "negative"),
+    ("It's a bad idea", "negative"),
   )
 
   def main(args: Array[String]): Unit = {
+    if (Configs.OnlySyncCassandra) return
     if (Configs.S3LoadModel) {
       MachineLearningModel.inference(postTrainTestData)
       return

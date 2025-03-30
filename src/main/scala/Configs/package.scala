@@ -29,7 +29,8 @@ package object Configs {
   val CassandraHost = "localhost"
   val CassandraPort = "9042"
   val CassandraKeyspace = "yelp_data_mining"
-  val SyncCassandraWithDataset = false
+  val SyncCassandraWithDataset = true
+  val OnlySyncCassandra = false
   val PartitioningCassandraSize = "64" // 64mb
   val LearningRateForGradientDescending = 0.0001
   val ShufflePartitions = "200"
@@ -41,8 +42,8 @@ package object Configs {
   val S3SecretKey = "6FwhSehsU4YDHUInsSOGe8wFGtH2mUJcmpNWisrt"
   val S3URL = "http://127.0.0.1:9000"
   val S3ModelBucket = "machine-learning-models"
-  val S3SaveModel = false
-  val S3LoadModel = true
+  val S3SaveModel = true
+  val S3LoadModel = false
   val SaveModelPath = "file:///tmp/my_trained_model"
   val S3LocalModelPath = "/tmp/my_trained_model"
   val S3RemoteModelPath = "/my_trained_model"
