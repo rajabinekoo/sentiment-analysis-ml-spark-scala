@@ -4,7 +4,8 @@ package object Configs {
   val AppName = "SentimentAnalysisYelpImprovedLogisticRegression"
   val Master = "local[*]"
   val DataSource = "src/main/resources/yelp.json"
-  val ExampleLimit = 20000
+  val SaveExampleLimit = 6000000
+  val LoadExampleLimit = 30000
   val FeatureSize = 20000
   val TrainingSplitRatio = 0.8
   val TestSplitRatio = 0.2
@@ -18,9 +19,6 @@ package object Configs {
   val NegativeLabel = 0.0
   val NeutralLabel = 2.0
   val PredictionSampleCount = 5
-  val CoolColumn = "cool"
-  val FunnyColumn = "funny"
-  val UsefulColumn = "useful"
   val NeutralWordsCount = "neutral_word_counts"
   val PositiveWordsCount = "positive_word_counts"
   val NegativeWordsCount = "negative_word_counts"
@@ -29,13 +27,13 @@ package object Configs {
   val CassandraHost = "localhost"
   val CassandraPort = "9042"
   val CassandraKeyspace = "yelp_data_mining"
-  val SyncCassandraWithDataset = true
+  val SyncCassandraWithDataset = false
   val OnlySyncCassandra = false
   val PartitioningCassandraSize = "64" // 64mb
   val LearningRateForGradientDescending = 0.0001
   val ShufflePartitions = "200"
-  val SparkDriverMemory = "1g"
-  val SparkExecutorMemory = "1g"
+  val SparkDriverMemory = "5g"
+  val SparkExecutorMemory = "5g"
   val DataframePersistLevel: StorageLevel = StorageLevel.DISK_ONLY
   val LogisticRegressionIteration = 100
   val S3AccessKey = "hg536gS5bVdByztLJjJv"

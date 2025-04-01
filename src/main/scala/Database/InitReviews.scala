@@ -10,7 +10,7 @@ object InitReviews {
       .option("header", "true")
       .option("inferSchema", "true")
       .load(Configs.DataSource)
-      .limit(Configs.ExampleLimit)
+      .limit(Configs.SaveExampleLimit)
       .filter(col("stars").isNotNull)
       .withColumnRenamed("text", "body")
       .withColumn("label",

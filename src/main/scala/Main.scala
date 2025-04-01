@@ -20,7 +20,7 @@ object Main {
       MachineLearningModel.inference(postTrainTestData)
       return
     }
-    
+
     val labeledData = DataAggregation.loadAndPrepareData(SparkInstance.singleton)
     labeledData.show()
 
@@ -30,8 +30,13 @@ object Main {
     val balancedData = DataAggregation.balanceData(labeledData)
     println("Class distribution after balancing:")
     balancedData.groupBy("label").count().show()
-    
-    MachineLearningModel.trainModel(balancedData, ModelEnum.LogisticRegression, postTrainTestData)
+
+    //  MachineLearningModel.trainModel(balancedData, ModelEnum.LogisticRegression, postTrainTestData)
+    MachineLearningModel.trainModelWithHyperparameterTuning(
+      DataAggregation.weightData(balancedData),
+      ModelEnum.LogisticRegression,
+      postTrainTestData,
+    )
 
     labeledData.unpersist()
     SparkInstance.singleton.stop()
