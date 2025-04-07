@@ -11,6 +11,7 @@ The Yelp Sentiment Analysis project is implemented using Scala, Apache Spark, Sp
 ## Table of Contents
 
 * [Installation](#installation)
+* [Datasets](#datasets)
 * [Usage](#usage)
 * [Contributing](#contributing)
 * [License](#license)
@@ -20,6 +21,18 @@ The Yelp Sentiment Analysis project is implemented using Scala, Apache Spark, Sp
 First, you need to have Docker and Docker Compose installed on your system, as they are required to run Apache Cassandra and MinIO. Then, edit the `.env` file according to your settings. You can then control the program's execution settings in the `Configs` package.
 
 Typically, Scala projects use a build tool like sbt or Maven. Choose the appropriate instructions below:
+
+## Datasets
+
+Please download the following datasets and place them in the `src/main/resources` directory of your project:
+
+* **Yelp Review Dataset:** [https://www.kaggle.com/datasets/yelp-dataset/yelp-dataset?resource=download&select=yelp_academic_dataset_review.json](https://www.kaggle.com/datasets/yelp-dataset/yelp-dataset?resource=download&select=yelp_academic_dataset_review.json)
+    * After downloading, ensure the file `yelp_academic_dataset_review.json` is located in `src/main/resources`.
+
+* **VADER Lexicon:** [https://www.kaggle.com/datasets/nltkdata/vader-lexicon](https://www.kaggle.com/datasets/nltkdata/vader-lexicon)
+    * You might need to navigate within this Kaggle dataset to find the actual lexicon file (it's often named something like `vader_lexicon.txt` or similar). Download this file and place it in `src/main/resources`.
+
+Make sure both downloaded files are present in the `src/main/resources` folder for the project to access them.
 
 ### Using sbt
 
