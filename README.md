@@ -1,6 +1,6 @@
 # Yelp Reviews Sentiment Analysis
 
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)]([لینک وضعیت بیلد شما])
+![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Scala](https://img.shields.io/badge/Scala-2.13.x-blue.svg)](https://www.scala-lang.org/)
 
